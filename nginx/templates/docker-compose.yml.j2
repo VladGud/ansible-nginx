@@ -1,0 +1,36 @@
+# Определение версии формата Docker Compose
+version: "3.8"
+
+# Определение пользовательской сети
+networks:
+  nginx-public:
+    driver: bridge  # Используем драйвер bridge для сети
+
+# Определение сервисов (контейнеров)
+services:
+  # Контейнер whoami-1
+  whoami-1:
+    image: containous/whoami:latest  # Используемый образ containous/whoami с тегом latest
+    container_name: whoami-1  # Имя контейнера
+    ports:
+      - 81:80  # Проксируемый порт 80 контейнера на порт 81 хоста
+    networks:
+      - nginx-public  # Подключаемый контейнер к пользовательской сети nginx-public
+    logging:
+      driver: json-file  # Используем json-file драйвер для логирования
+      options:
+        max-file: '5'  # Максимальное количество сохраняемых файлов логов
+        max-size: 10m  # Максимальный размер каждого лог-файла
+
+  whoami-2:
+    image: containous/whoami:latest
+    container_name: whoami-2
+    ports:
+    - 82:80
+    networks:
+    - nginx-public
+    logging:
+      driver: json-file
+      options:
+        max-file: '5'
+        max-size: 10m

@@ -1,0 +1,52 @@
+---
+- name: Nginx | Copy docker config files to up web-service container
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "/home/{{ ansible_user }}/docker-compose.yml"
+    owner: root
+    mode: 0644
+  become: true
+
+- name: Nginx | Up web-service
+  ansible.builtin.shell: "docker compose up -d"
+  args:
+    chdir: "/home/{{ ansible_user }}"
+  become: true
+
+- name: Nginx | Install openssl and nginx
+  ansible.builtin.apt:
+    pkg: 
+      - openssl
+      - nginx
+    state: latest
+    update_cache: true
+  become: true
+
+- name: Nginx | Generate pki
+  ansible.builtin.shell: "openssl req -nodes -x509 -newkey rsa:4096 \
+                         -keyout {{ nginx.priv_key }} -out {{ nginx.crt }} \
+                         -days 365 -subj '/C=RU/O=Org/CN={{ ansible_host }}'"
+  become: true
+
+- name: Nginx | Copy nginx config
+  ansible.builtin.template:
+    src: "nginx.conf.j2"
+    dest: "{{ item }}"
+    owner: root
+    mode: 0644
+  loop:
+    - "/etc/nginx/sites-available/{{ nginx.web_name }}"
+    - "/etc/nginx/sites-enabled/{{ nginx.web_name }}"
+  become: true
+
+- name: Nginx | Check nginx configuration
+  ansible.builtin.shell: "nginx -t"
+  become: true
+
+- name: Nginx | Run nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  become: true

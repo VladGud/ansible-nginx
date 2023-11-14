@@ -1,0 +1,6 @@
+---
+# vars file for xrdp
+nginx:
+  web_name: "web-lab"
+  crt: "/etc/ssl/private/nginx.crt"
+  priv_key: "/etc/ssl/private/nginx.key"

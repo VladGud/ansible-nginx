@@ -1,0 +1,43 @@
+# upstream myproxy блок определяет бэкенд-сервер, на который будет выполняться проксирование трафика.
+# Здесь указан бэкенд-сервер с локальным адресом 127.0.0.1 и портом 81.
+upstream myproxy {
+    least_conn;
+    server 127.0.0.1:81;
+    server 127.0.0.1:82;
+}
+
+# server блок, слушающий HTTP-трафик на порту 80 и перенаправляющий его на HTTPS.
+server {
+    listen          80;  # Прослушивание HTTP-трафика на порту 80.
+    server_name     localhost;  # Указание доменного имени сервера.
+
+    # Возврат 301 (перманентное перенаправление) на HTTPS-версию сайта.
+    return 301 https://localhost/;
+}
+
+# server блок, слушающий HTTPS-трафик на порту 443 и обрабатывающий его с использованием SSL/TLS.
+server {
+    listen 443;  # Прослушивание HTTPS-трафика на порту 443.
+    server_name localhost;  # Указание доменного имени сервера.
+
+    ssl	on;  # Включение поддержки SSL/TLS.
+
+    # Пути к SSL-сертификату и приватному ключу.
+    ssl_certificate         {{ nginx.crt }};
+    ssl_certificate_key     {{ nginx.priv_key }};
+
+    # Опции безопасности SSL/TLS (протоколы, шифры, предпочтительные шифры).
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+
+    location / {
+        # Настройки проксирования трафика на бэкенд-сервер (myproxy).
+        proxy_pass http://myproxy;
+        proxy_ssl_server_name on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
